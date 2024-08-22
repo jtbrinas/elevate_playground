@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini API</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+    <!-- <div class="container mt-4">
+        template for bot messages
+        <div class="d-fle align-items-baseline mb-4">
+            <div class="pe-2">
+                <div class="card d-inline-block p-2 px-3 m-1">Hi are you avialbel to chat</div>
+            </div>
+        </div>
+
+        template for user messages
+        <div class="d-fle align-items-baseline mb-4 text-end justify-content-end">
+            <div class="pe-2">
+                <div class="card d-inline-block p-2 px-3 m-1">No shut up</div>
+            </div>
+        </div>
+
+    </div> -->
+  <main>
+    <!-- <div class="d-flex justify-content-left"><h2>Elevate</h2></div> -->
+        <main class="d-flex flex-column vh-100">
+            <header class="bg-primary text-white text-center py-3">
+              <h1>LegalHubChatbot</h1>
+            </header>
+            <div class="flex-fill overflow-auto p-3 bg-light" id="chatHistory">
+                <div class="d-flex justify-content-center align-items-center vh-100" id="suggestedPrompts">
+                    <div class="row">
+                        <div class="col text-center">
+                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt1">Explain legal concept</button>
+                        </div>
+                        <div class="col text-center">
+                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt2">Review Document</button>
+                        </div>
+                        <div class="col text-center">
+                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt3">Find Case Law</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="bg-secondary p-3">
+              <form id="chatForm" class="d-flex">
+                <input name="prompt" type="text" id="chatInput" class="form-control me-2" placeholder="Type your message here..." autocomplete="off" value="">
+                <button type="submit" class="btn btn-primary">Send</button>
+              </form>
+            </footer>
+          </main>
+      <!-- <div class="prompt-box">
+        <label>
+          <input name="prompt" placeholder="Enter instructions here" type="text"
+            value="">
+        </label>
+        <button type="submit">Go</button>
+      </div> -->
+    <!-- <p class="output">(Results will appear here)</p> -->
+  </main>
+  <script type="module" src="/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@12.0.6/dist/markdown-it.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+  <script>
+    (function(apiKey){
+        (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+        v=['initialize','identify','updateOptions','pageLoad','track'];for(w=0,x=v.length;w<x;++w)(function(m){
+            o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+            y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+            z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+    })('1ecd6906-2e67-4214-485c-176a4edaea45');
+    pendo.initialize({
+    visitor: {
+            id: "FAKEVISITORID",
+            firstName: "FAKENAME",
+            lastName: "FAKELASTNAME",
+        },
+        account: {
+            id: "FAKEACCOUNTID",
+        }
+    });
+    </script>
+</body>
+
+</html>
