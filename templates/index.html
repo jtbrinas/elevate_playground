@@ -48,6 +48,11 @@
             </div>
             <footer class="bg-secondary p-3">
               <form id="chatForm" class="d-flex">
+                <label for="fileInput" class="btn btn-light">
+                  LABEL
+                </label>
+                <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf" onchange="uploadFile()">
+  
                 <input name="prompt" type="text" id="chatInput" class="form-control me-2" placeholder="Type your message here..." autocomplete="off" value="">
                 <button type="submit" class="btn btn-primary">Send</button>
               </form>
@@ -84,7 +89,34 @@
             id: "FAKEACCOUNTID",
         }
     });
-    </script>
+
+    function uploadFile() {
+  const fileInput = document.getElementById('fileInput');
+  const file = fileInput.files[0]; // Get the selected file
+
+  if (!file) {
+    alert('Please select a file to upload.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  fetch('/upload', { // Adjust the URL to your server's upload endpoint
+    method: 'POST',
+    body: formData,
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('File uploaded successfully:', data);
+    // Handle success
+  })
+  .catch(error => {
+    console.error('Error uploading file:', error);
+    // Handle error
+  });
+}
+  </script>
 </body>
 
 </html>

@@ -16,10 +16,9 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 # ChatGoogleGenerativeAI from langchain_google_genai: Provides a chat interface for Google's generative AI.
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
-import os
-
+# Load the API key hidden in .env
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,6 +28,25 @@ from langchain_core.chat_history import (
 )
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+from langchain_community.document_loaders import PyPDFLoader
+
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
+
+from langchain.tools.retriever import create_retriever_tool
+
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
+
+from langchain.agents import initialize_agent, AgentType
+
+
+# This isn't really implemented yet
 store = {}
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
@@ -37,28 +55,189 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
+from typing import Annotated
+from typing_extensions import TypedDict
+from langgraph.graph.message import add_messages
+
+# Add messages essentially does this with more
+# robust handling
+# def add_messages(left: list, right: list):
+#     return left + right
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+
+# Initialize Gemini model
 model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-system_message = SystemMessage(content="you do not answer serious questions")
+# Initialize version that keeps chat history
 with_message_history = RunnableWithMessageHistory(model, get_session_history)
 
+# 
 config = {"configurable": {"session_id": "abc2"}}
-
-with_message_history.stream(
-    [system_message],
-    config=config,
-)
-
-print(get_session_history("abc2"))
-
+config_thread = {"configurable": {"thread_id": "abc2"}}
 
 # Creates a Flask web application named app.
 app = Flask(__name__)
+
+# Set up upload folder for documents
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# TEST: load demo PDF, split the text, embed, and store
+# file_path = "uploads/nike.pdf"
+# loader = PyPDFLoader(file_path)
+# docs = loader.load()
+# text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+# splits = text_splitter.split_documents(docs)
+# vectorstore = Chroma.from_documents(documents=splits, embedding=GoogleGenerativeAIEmbeddings(model="models/embedding-001"))
+# Initialize the vector store at the start of the app
+
+vectorstore_path = 'vectorstore/'
+if not os.path.exists(vectorstore_path):
+    os.makedirs(vectorstore_path)
+
+# Initialize an empty vector store
+vectorstore = Chroma(
+    persist_directory=vectorstore_path, 
+    embedding_function=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+)
+
+memory = MemorySaver()
+retriever = vectorstore.as_retriever()
+
+# Create tool
+tool = create_retriever_tool(
+    retriever,
+    "retriever",
+    "Searches through and uses user uploaded documents to answer user questions and help users complete tasks",
+)
+tools = [tool]
+from langgraph.prebuilt import ToolNode
+
+tool_node = ToolNode(tools)
+
+model = model.bind_tools(tools)
+
+agent_executor = create_react_agent(model, tools, checkpointer=memory)
+
+from typing import Literal
+
+from langchain_core.runnables import RunnableConfig
+
+from langgraph.graph import END, START, StateGraph
+
+# Define the function that determines whether to continue or not
+def should_continue(state: State) -> Literal["__end__", "tools"]:
+    messages = state["messages"]
+    last_message = messages[-1]
+    # If there is no function call, then we finish
+    if not last_message.tool_calls:
+        return END
+    # Otherwise if there is, we continue
+    else:
+        return "tools"
+
+
+# Define the function that calls the model
+async def call_model(state: State, config: RunnableConfig):
+    messages = state["messages"]
+    # Note: Passing the config through explicitly is required for python < 3.11
+    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    response = await model.ainvoke(messages, config)
+    # We return a list, because this will get added to the existing list
+    return {"messages": response}
+
+# Define a new graph
+workflow = StateGraph(State)
+
+# Define the two nodes we will cycle between
+workflow.add_node("agent", call_model)
+workflow.add_node("tools", tool_node)
+
+# Set the entrypoint as `agent`
+# This means that this node is the first one called
+workflow.add_edge(START, "agent")
+
+# We now add a conditional edge
+workflow.add_conditional_edges(
+    # First, we define the start node. We use `agent`.
+    # This means these are the edges taken after the `agent` node is called.
+    "agent",
+    # Next, we pass in the function that will determine which node is called next.
+    should_continue,
+)
+
+workflow.add_edge("tools", "agent")
+
+# Finally, we compile it!
+# This compiles it into a LangChain Runnable,
+# meaning you can use it as you would any other runnable
+runnable = workflow.compile(checkpointer=memory)
+
+from langchain_core.messages import HumanMessage
+
+async def gemini_call(inputs):
+    async for event in runnable.astream_events({"messages": inputs}, config_thread, version="v1"):
+        kind = event["event"]
+        if kind == "on_chat_model_stream":
+            content = event["data"]["chunk"].content
+            if content:
+                # Empty content in the context of OpenAI or Anthropic usually means
+                # that the model is asking for a tool to be invoked.
+                # So we only print non-empty content
+                # print(event, end="|")
+                yield event["data"]["chunk"]
+        elif kind == "on_tool_start":
+            print("--")
+            print(
+                f"Starting tool: {event['name']} with inputs: {event['data'].get('input')}"
+            )
+        elif kind == "on_tool_end":
+            print(f"Done tool: {event['name']}")
+            print(f"Tool output was: {event['data'].get('output')}")
+            print("--")
+
+# System prompt (Not implemented yet)
+system_prompt = (
+    "You are an assistant for legal tasks. "
+    "If the user uploads documents relevant to the task, "
+    "use the user uploaded documents to complete their tasks. "
+    "If you don't know an answer to a question, say you "
+    "don't know. Use three sentences maximum and keep the "
+    "answer concise. Ensure you stay on legal topic only."
+)
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system_prompt),
+        ("human", "{input}"),
+    ]
+)
+
+# TEST:
+# query = "Summarize the information about Nike's markets in 2023"
+# print(agent_executor.invoke({"messages": [HumanMessage(content=query)]}, config=config_thread)['messages'][-1])
+
+
+# This is for RAG but not conversational
+# question_answer_chain = create_stuff_documents_chain(model, prompt)
+# rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+# with_message_history = RunnableWithMessageHistory(
+#     model,
+#     get_session_history,
+#     input_messages_key="input",
+#     history_messages_key="chat_history",
+#     output_messages_key="answer",
+# )
+
+# print(with_message_history.invoke({"input": "What was Nike's revenue in 2023?"}, config=config)["context"])
 
 # Defines a route for the home page (/) that sends the index.html file from the web directory.
 @app.route('/')
 def home():
     return send_file('templates/index.html')
-    # return send_file('templates/test.html')
 
 
 # Defines a route for the /api/generate endpoint that accepts POST requests.
@@ -77,19 +256,79 @@ def generate_api():
             message = HumanMessage(
                 content=content
             )
-            # response = model.stream([message])
-            response = with_message_history.stream(
-                [message],
-                config=config,
-            )
+            # response = agent_executor.stream(
+            #     [message], config=config_thread
+            # )
+            # response = with_message_history.stream(
+            #     [message],
+            #     config=config,
+            # )
+            async def async_stream():
+                async for chunk in gemini_call([message]):
+                    yield chunk
+
+            # Generator function to stream the response
             def stream():
-                for chunk in response:
-                    yield 'data: %s\n\n' % json.dumps({ "text": chunk.content })
+                # Run the async generator in a synchronous context
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                async_gen = async_stream()
+
+                while True:
+                    try:
+                        chunk = loop.run_until_complete(async_gen.__anext__())
+                        yield 'data: %s\n\n' % json.dumps({"text": chunk.content})
+                    except StopAsyncIteration:
+                        break
+            # print(response)
+            # def stream():
+            #     for chunk in response:
+            #         yield 'data: %s\n\n' % json.dumps({ "text": chunk.content })
 
             return stream(), {'Content-Type': 'text/event-stream'}
 
         except Exception as e:
             return jsonify({ "error": str(e) })
+
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    global tools, agent_executor, model, vectorstore
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    # Process the file (save it, validate it, etc.)
+    file.save(f'uploads/{file.filename}')
+    file_path = f'uploads/{file.filename}'
+    loader = PyPDFLoader(file_path)
+    docs = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splits = text_splitter.split_documents(docs)
+
+    # Add new documents to the existing vector store
+    vectorstore.add_documents(splits)
+
+    # Create retriever and tool after updating the vector store
+    retriever = vectorstore.as_retriever()
+    tool = create_retriever_tool(
+        retriever,
+        "retriever",
+        "Searches through and uses user uploaded documents to answer user questions and help users complete tasks",
+    )
+    tools = [tool]
+
+    # Rebind tools to the model and recreate agent_executor
+    model = model.bind_tools(tools)
+    agent_executor = create_react_agent(model, tools, checkpointer=memory)
+
+    print("UPLOADED")
+
+    return jsonify({'message': 'File uploaded and added to vector store successfully'})
 
 
 # Defines a route to serve static files from the web directory for any given path.
@@ -99,5 +338,8 @@ def serve_static(path):
     return send_from_directory('templates', path)
 
 # If the script is run directly, it starts the Flask app in debug mode.
+import asyncio
 if __name__ == '__main__':
+    # inputs = [HumanMessage(content="Summarize the information about Nike's markets in 2023")]
+    # print(gemini_call(inputs))
     app.run(debug=True)
