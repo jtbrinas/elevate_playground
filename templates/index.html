@@ -49,7 +49,7 @@
             <footer class="bg-secondary p-3">
               <form id="chatForm" class="d-flex">
                 <label for="fileInput" class="btn btn-light">
-                  LABEL
+                  📎
                 </label>
                 <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf" onchange="uploadFile()">
   
@@ -91,31 +91,48 @@
     });
 
     function uploadFile() {
-  const fileInput = document.getElementById('fileInput');
-  const file = fileInput.files[0]; // Get the selected file
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0]; // Get the selected file
 
-  if (!file) {
-    alert('Please select a file to upload.');
-    return;
-  }
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+      const chatButtons = document.getElementById('suggestedPrompts');
 
-  const formData = new FormData();
-  formData.append('file', file);
+      if (chatButtons) {
+          chatButtons.remove();
+      }
+      // New user chat of the file
+      const chatHistory = document.getElementById('chatHistory');
+      const newUserChat = document.createElement('div'); // Create a new <div> element
+      newUserChat.className = "d-fle align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+      newUserChat.innerHTML =`<div class="pe-2">
+                                  <div class="card d-inline-block p-2 px-3 m-1"></div>
+                              </div>`;
+      const cardElement = newUserChat.querySelector('.card'); // Target the element with class 'card'
+      cardElement.textContent = 'Uploading...'; // Replace the text
+      chatHistory.appendChild(newUserChat);
 
-  fetch('/upload', { // Adjust the URL to your server's upload endpoint
-    method: 'POST',
-    body: formData,
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('File uploaded successfully:', data);
-    // Handle success
-  })
-  .catch(error => {
-    console.error('Error uploading file:', error);
-    // Handle error
-  });
-}
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('/upload', { // Adjust the URL to your server's upload endpoint
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('File uploaded successfully:', data);
+        // Handle success
+        cardElement.textContent = '📄 ' + file.name; // Replace the text
+      })
+      .catch(error => {
+        console.error('Error uploading file:', error);
+        // Handle error
+        cardElement.textContent = 'File upload failed.';
+      });
+    }
   </script>
 </body>
 

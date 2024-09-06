@@ -104,6 +104,7 @@ vectorstore = Chroma(
     persist_directory=vectorstore_path, 
     embedding_function=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 )
+# vectorstore.add_documents(splits)
 
 memory = MemorySaver()
 retriever = vectorstore.as_retriever()
@@ -112,16 +113,34 @@ retriever = vectorstore.as_retriever()
 tool = create_retriever_tool(
     retriever,
     "retriever",
-    "Searches through and uses user uploaded documents to answer user questions and help users complete tasks",
+    "contains uploaded documents",
 )
 tools = [tool]
+
+system_prompt = (
+    "You are an AI assistant helping with legal documents. "
+    "When asked a question that requires information from an uploaded document, "
+    "use the document retrieval tool. If the question is general, answer based on your knowledge. "
+    "If unsure, ask for clarification."
+)
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system_prompt),
+        ("human", "{input}"),
+    ]
+)
+# question_answer_chain = create_stuff_documents_chain(model, prompt)
+# qa = create_retrieval_chain(retriever, question_answer_chain)
+
+
 from langgraph.prebuilt import ToolNode
 
 tool_node = ToolNode(tools)
 
 model = model.bind_tools(tools)
 
-agent_executor = create_react_agent(model, tools, checkpointer=memory)
+agent_executor = create_react_agent(model, tools, checkpointer=memory, messages_modifier=system_prompt)
 
 from typing import Literal
 
@@ -200,39 +219,6 @@ async def gemini_call(inputs):
             print(f"Tool output was: {event['data'].get('output')}")
             print("--")
 
-# System prompt (Not implemented yet)
-system_prompt = (
-    "You are an assistant for legal tasks. "
-    "If the user uploads documents relevant to the task, "
-    "use the user uploaded documents to complete their tasks. "
-    "If you don't know an answer to a question, say you "
-    "don't know. Use three sentences maximum and keep the "
-    "answer concise. Ensure you stay on legal topic only."
-)
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ]
-)
-
-# TEST:
-# query = "Summarize the information about Nike's markets in 2023"
-# print(agent_executor.invoke({"messages": [HumanMessage(content=query)]}, config=config_thread)['messages'][-1])
-
-
-# This is for RAG but not conversational
-# question_answer_chain = create_stuff_documents_chain(model, prompt)
-# rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-# with_message_history = RunnableWithMessageHistory(
-#     model,
-#     get_session_history,
-#     input_messages_key="input",
-#     history_messages_key="chat_history",
-#     output_messages_key="answer",
-# )
-
-# print(with_message_history.invoke({"input": "What was Nike's revenue in 2023?"}, config=config)["context"])
 
 # Defines a route for the home page (/) that sends the index.html file from the web directory.
 @app.route('/')
@@ -251,20 +237,11 @@ def generate_api():
     if request.method == "POST":
         try:
             req_body = request.get_json()
-            content = req_body.get("contents")
-            # model = ChatGoogleGenerativeAI(model=req_body.get("model"))
-            message = HumanMessage(
-                content=content
-            )
-            # response = agent_executor.stream(
-            #     [message], config=config_thread
-            # )
-            # response = with_message_history.stream(
-            #     [message],
-            #     config=config,
-            # )
+            content = req_body.get("contents")            
+            # Create the human message with the user input
+            human_message = HumanMessage(content=content)
             async def async_stream():
-                async for chunk in gemini_call([message]):
+                async for chunk in gemini_call([human_message]):
                     yield chunk
 
             # Generator function to stream the response
@@ -318,7 +295,7 @@ def upload_file():
     tool = create_retriever_tool(
         retriever,
         "retriever",
-        "Searches through and uses user uploaded documents to answer user questions and help users complete tasks",
+        "retrieve external information",
     )
     tools = [tool]
 
@@ -337,9 +314,10 @@ def upload_file():
 def serve_static(path):
     return send_from_directory('templates', path)
 
+
 # If the script is run directly, it starts the Flask app in debug mode.
 import asyncio
 if __name__ == '__main__':
-    # inputs = [HumanMessage(content="Summarize the information about Nike's markets in 2023")]
-    # print(gemini_call(inputs))
+    # message = HumanMessage(content="Summarize the nikes view on product research, design and development.")
+    # print(runnable.ainvoke({"messages": [message]}, config=config_thread))
     app.run(debug=True)

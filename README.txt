@@ -9,6 +9,8 @@ Installation:
     python-dotenv
     langchain-core
     langchain-google-genai
+    langchain-chroma
+    langgraph
 
     Google Cloud CLI 
         Install at https://cloud.google.com/sdk/docs/install. Run "gcloud auth application-default login" to set application default credentials     
