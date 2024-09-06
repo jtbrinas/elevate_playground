@@ -5,8 +5,6 @@ let promptInput = document.querySelector('input[name="prompt"]');
 // let output = document.querySelector('.output');
 let output = document.getElementById('chatHistory');
 
-const chatForm = document.getElementById('chatForm');
-const chatInput = document.getElementById('chatInput');
 const chatHistory = document.getElementById('chatHistory');
 
 form.onsubmit = async (ev) => {

@@ -73,10 +73,10 @@ class State(TypedDict):
 # Initialize Gemini model
 model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
 # Initialize version that keeps chat history
-with_message_history = RunnableWithMessageHistory(model, get_session_history)
+# with_message_history = RunnableWithMessageHistory(model, get_session_history)
 
 # 
-config = {"configurable": {"session_id": "abc2"}}
+# config = {"configurable": {"session_id": "abc2"}}
 config_thread = {"configurable": {"thread_id": "abc2"}}
 
 # Creates a Flask web application named app.
@@ -320,4 +320,4 @@ import asyncio
 if __name__ == '__main__':
     # message = HumanMessage(content="Summarize the nikes view on product research, design and development.")
     # print(runnable.ainvoke({"messages": [message]}, config=config_thread))
-    app.run(debug=True)
+    app.run(debug=True, port=8000)
