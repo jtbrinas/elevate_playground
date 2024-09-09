@@ -10,7 +10,8 @@ import os
 # send_file: Sends files to the client.
 # send_from_directory: Sends files from a specified directory.
 
-from flask import Flask, jsonify, request, send_file, send_from_directory
+from flask import Flask, jsonify, request, send_file, send_from_directory, session
+import uuid
 
 # HumanMessage from langchain_core.messages: Represents a message from a human user.
 # ChatGoogleGenerativeAI from langchain_google_genai: Provides a chat interface for Google's generative AI.
@@ -31,11 +32,8 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.document_loaders import PyPDFLoader
 
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 
 from langchain.tools.retriever import create_retriever_tool
@@ -43,7 +41,6 @@ from langchain.tools.retriever import create_retriever_tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
-from langchain.agents import initialize_agent, AgentType
 
 
 # This isn't really implemented yet
@@ -81,6 +78,7 @@ config_thread = {"configurable": {"thread_id": "abc2"}}
 
 # Creates a Flask web application named app.
 app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # Set up upload folder for documents
 app.config['UPLOAD_FOLDER'] = 'uploads/'
@@ -130,9 +128,6 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}"),
     ]
 )
-# question_answer_chain = create_stuff_documents_chain(model, prompt)
-# qa = create_retrieval_chain(retriever, question_answer_chain)
-
 
 from langgraph.prebuilt import ToolNode
 
@@ -198,8 +193,8 @@ runnable = workflow.compile(checkpointer=memory)
 
 from langchain_core.messages import HumanMessage
 
-async def gemini_call(inputs):
-    async for event in runnable.astream_events({"messages": inputs}, config_thread, version="v1"):
+async def gemini_call(inputs, config):
+    async for event in runnable.astream_events({"messages": inputs}, config, version="v1"):
         kind = event["event"]
         if kind == "on_chat_model_stream":
             content = event["data"]["chunk"].content
@@ -223,6 +218,12 @@ async def gemini_call(inputs):
 # Defines a route for the home page (/) that sends the index.html file from the web directory.
 @app.route('/')
 def home():
+    if 'user_id' not in session:
+        # Generate a unique ID for the user
+        session['user_id'] = str(uuid.uuid4())
+
+    user_id = session['user_id']
+    store[user_id] = {'configurable': {'thread_id': user_id}}
     return send_file('templates/index.html')
 
 
@@ -240,8 +241,9 @@ def generate_api():
             content = req_body.get("contents")            
             # Create the human message with the user input
             human_message = HumanMessage(content=content)
+            config = store[session['user_id']]
             async def async_stream():
-                async for chunk in gemini_call([human_message]):
+                async for chunk in gemini_call([human_message], config):
                     yield chunk
 
             # Generator function to stream the response
@@ -257,7 +259,6 @@ def generate_api():
                         yield 'data: %s\n\n' % json.dumps({"text": chunk.content})
                     except StopAsyncIteration:
                         break
-            # print(response)
             # def stream():
             #     for chunk in response:
             #         yield 'data: %s\n\n' % json.dumps({ "text": chunk.content })
@@ -282,30 +283,36 @@ def upload_file():
     # Process the file (save it, validate it, etc.)
     file.save(f'uploads/{file.filename}')
     file_path = f'uploads/{file.filename}'
-    loader = PyPDFLoader(file_path)
-    docs = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    splits = text_splitter.split_documents(docs)
+    try:
+        loader = PyPDFLoader(file_path)
+        docs = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        splits = text_splitter.split_documents(docs)
 
-    # Add new documents to the existing vector store
-    vectorstore.add_documents(splits)
+        # Add new documents to the existing vector store
+        vectorstore.add_documents(splits)
 
-    # Create retriever and tool after updating the vector store
-    retriever = vectorstore.as_retriever()
-    tool = create_retriever_tool(
-        retriever,
-        "retriever",
-        "retrieve external information",
-    )
-    tools = [tool]
+        # Create retriever and tool after updating the vector store
+        retriever = vectorstore.as_retriever()
+        tool = create_retriever_tool(
+            retriever,
+            "retriever",
+            "retrieve external information",
+        )
+        tools = [tool]
 
-    # Rebind tools to the model and recreate agent_executor
-    model = model.bind_tools(tools)
-    agent_executor = create_react_agent(model, tools, checkpointer=memory)
+        # Rebind tools to the model and recreate agent_executor
+        model = model.bind_tools(tools)
+        agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
-    print("UPLOADED")
+        print("UPLOADED")
 
-    return jsonify({'message': 'File uploaded and added to vector store successfully'})
+        return jsonify({'message': 'File uploaded and added to vector store successfully'})
+    finally:
+        # Delete the file after processing it
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
 
 
 # Defines a route to serve static files from the web directory for any given path.
@@ -318,6 +325,4 @@ def serve_static(path):
 # If the script is run directly, it starts the Flask app in debug mode.
 import asyncio
 if __name__ == '__main__':
-    # message = HumanMessage(content="Summarize the nikes view on product research, design and development.")
-    # print(runnable.ainvoke({"messages": [message]}, config=config_thread))
     app.run(debug=True, port=8000)
