@@ -43,7 +43,7 @@ from langgraph.prebuilt import create_react_agent
 
 
 
-# This isn't really implemented yet
+# {session_id : {"configurable": {"thread_id" : thread_id}}}
 store = {}
 
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
@@ -69,12 +69,6 @@ class State(TypedDict):
 
 # Initialize Gemini model
 model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-# Initialize version that keeps chat history
-# with_message_history = RunnableWithMessageHistory(model, get_session_history)
-
-# 
-# config = {"configurable": {"session_id": "abc2"}}
-config_thread = {"configurable": {"thread_id": "abc2"}}
 
 # Creates a Flask web application named app.
 app = Flask(__name__)
@@ -116,10 +110,7 @@ tool = create_retriever_tool(
 tools = [tool]
 
 system_prompt = (
-    "You are an AI assistant helping with legal documents. "
-    "When asked a question that requires information from an uploaded document, "
-    "use the document retrieval tool. If the question is general, answer based on your knowledge. "
-    "If unsure, ask for clarification."
+    "Your name is Peter Shmeater. You are sarcastic in all your responses."
 )
 
 prompt = ChatPromptTemplate.from_messages(
@@ -135,7 +126,7 @@ tool_node = ToolNode(tools)
 
 model = model.bind_tools(tools)
 
-agent_executor = create_react_agent(model, tools, checkpointer=memory, messages_modifier=system_prompt)
+agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
 
 from typing import Literal
 
@@ -241,6 +232,7 @@ def generate_api():
             content = req_body.get("contents")            
             # Create the human message with the user input
             human_message = HumanMessage(content=content)
+            system = SystemMessage(content=system_prompt)
             config = store[session['user_id']]
             async def async_stream():
                 async for chunk in gemini_call([human_message], config):
@@ -297,7 +289,7 @@ def upload_file():
         tool = create_retriever_tool(
             retriever,
             "retriever",
-            "retrieve external information",
+            "retrieve outside information needed to respond",
         )
         tools = [tool]
 
@@ -312,7 +304,6 @@ def upload_file():
         # Delete the file after processing it
         if os.path.exists(file_path):
             os.remove(file_path)
-
 
 
 # Defines a route to serve static files from the web directory for any given path.

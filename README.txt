@@ -15,7 +15,10 @@ Installation and setup:
     Google Cloud CLI 
         Install at https://cloud.google.com/sdk/docs/install. Run "gcloud auth application-default login" to set application default credentials
 
-    .env must have GOOGLE_API_KEY and LANGCHAIN_API_KEY     
+    .env must have GOOGLE_API_KEY, LANGCHAIN_API_KEY, and a FLASK_SECRET_KEY
+    How I created my secret key:
+        import secrets
+        secret_key = secrets.token_hex(32))
 
 Usage:
     Run "python3 app.py" to host the app locally
@@ -53,6 +56,8 @@ main.js
 
 gemini-api.js
     This file makes the POST request to app.py to make the API call. It also handles streaming the response back to main.js.
+
+
 
 
 Contact:

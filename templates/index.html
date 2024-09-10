@@ -1,96 +1,214 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gemini API</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legal Advisor App</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: #dc3545;
+      border-radius: 50%;
+      height: 18px;
+      width: 18px;
+      font-size: 10px;
+      color: white;
+      text-align: center;
+      line-height: 18px; 
+    }
+    .sparkle {
+      height: 6px; 
+      width: 6px; 
+      background-color: #20c0aa; 
+      border-radius: 50%; 
+      display: block; 
+      position: absolute; 
+    }
+    .sparkle:nth-child(1) {
+      top: 8px; 
+      left: 8px;
+    }
+    .sparkle:nth-child(2) {
+      top: 16px; 
+      right: 8px;
+    }
+    .sparkle:nth-child(3) {
+      bottom: 8px; 
+      left: 20px;
+    }
+    .vertical-toolbar {
+      background-color: white;
+      width: 50px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+    }
+    .vertical-toolbar .nav-link {
+      color: #818a91;
+      padding: 1rem;
+    }
+    .vertical-toolbar .nav-link:hover {
+      background-color: rgba(0,0,0,.05); 
+    }
+
+    /* Styling for smaller screens - Mobile First */
+    @media (max-width: 768px) { 
+      .btn-group-vertical {
+        display: flex;
+        flex-direction: column;
+      }
+      .btn-group-vertical > .btn {
+        margin-bottom: 10px;
+      }
+      .fixed-bottom {
+        position: static!important;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
-
-<body>
-    <!-- <div class="container mt-4">
-        template for bot messages
-        <div class="d-fle align-items-baseline mb-4">
-            <div class="pe-2">
-                <div class="card d-inline-block p-2 px-3 m-1">Hi are you avialbel to chat</div>
-            </div>
+<body style="background-color: #f2f2f2;">
+  <nav class="navbar navbar-light bg-white px-3" style="border-bottom: 1px solid #e6e6e6;">
+    <span class="navbar-brand" style="font-size: 20px;">
+      <span style="height: 24px; width: 24px; background-color: #20c0aa; border-radius: 50%; display: inline-block;"></span>
+      <span style="color: #20c0aa; font-weight: 600; margin-left: 8px;">elevate</span>
+    </span>
+    <form class="form-inline my-2 my-lg-0">
+      <div class="input-group rounded" style="background-color: white;">
+        <div class="input-group-prepend">
+          <span class="input-group-text border-0" style="background-color: white;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#818a91" class="bi bi-search" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+          </span>
         </div>
+        <input class="form-control border-0" type="search" placeholder="Search" aria-label="Search" style="background-color: white;">
+      </div>
+    </form>
+    <div>
+      <span style="position: relative;">
+        <span class="notification-badge">99+</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#818a91" class="bi bi-bell" viewBox="0 0 16 16">
+          <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .828.333 1.554.898 2.042l.803.171c.564.123 1.178.133 1.772.06L8 13.10c.64-.071 1.21-.244 1.722-.516.526-.287.936-.692 1.176-1.155C10 6.12 10 5.375 10 4.717a2.5 2.5 0 1 0-5 0c0 1.712 1.03 3.291 2.616 4.243l.803.171c.564.123 1.178.133 1.772.061A4.002 4.002 0 0 0 12 6a4.002 4.002 0 0 0-3.203-3.142l-.797.161z"/>
+          <path d="M13.956 5.444c.824-.885 1.396-1.977 1.396-3.253 0-1.276-.57-2.368-1.395-3.252A3.989 3.989 0 0 0 11 2H6A3.989 3.989 0 0 0 3 8c0 1.286.574 2.377 1.396 3.253C5.514 13.918 7.284 16 9 16c1.716 0 3.486-2.082 4.944-5.556z"/>
+        </svg>
+      </span>
+      <span style="height: 24px; width: 24px; background-color: #3498db; border-radius: 50%; display: inline-block; margin-left: 16px; color: white; font-size: 12px; text-align: center; line-height: 24px;">LM</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#818a91" class="bi bi-chevron-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+      </svg>
+    </div>
+  </nav>
 
-        template for user messages
-        <div class="d-fle align-items-baseline mb-4 text-end justify-content-end">
-            <div class="pe-2">
-                <div class="card d-inline-block p-2 px-3 m-1">No shut up</div>
-            </div>
-        </div>
+<!-- Main chatbox -->
+  <div id="chatHistory" class="container-fluid" style="padding-left: 60px; padding-bottom: 100px;"> 
+    <div class="row" style="margin-top: 24px;" id="welcomeSign">
+      <div class="col-12" style="text-align: center;">
+        <span style="height: 36px; width: 36px; background-color: #20c0aa; border-radius: 50%; display: inline-block; position: relative; margin-bottom: 16px;">
+          <span class="sparkle"></span>
+          <span class="sparkle"></span>
+          <span class="sparkle"></span>
+        </span>
+        <h3 style="font-weight: 600;">Hi! I'm your <span style="color: #20c0aa;">Legal Advisor</span>.</h3>
+        <h3 style="font-weight: 600;">How can I help you today?</h3>
+        <p style="color: #818a91; font-size: 14px; margin-top: 12px;">Ask for information on deal points, matters, clients, and people in your firm.</p>
+      </div>
+    </div>
+    <div class="row" style="margin-top: 32px;" id="suggestedPrompts">
+      <div class="col-12 btn-group-vertical"> 
+        <button type="button" id="prompt1" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Explain Legal Concept</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
+        <button type="button" id="prompt2" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Review Document</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
+        <button type="button" id="prompt3" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Find Case Law</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
+      </div>
+    </div>
+  </div>
+<!-- Main chatbox -->
 
-    </div> -->
-  <main>
-    <!-- <div class="d-flex justify-content-left"><h2>Elevate</h2></div> -->
-        <main class="d-flex flex-column vh-100">
-            <header class="bg-primary text-white text-center py-3">
-              <h1>LegalHubChatbot</h1>
-            </header>
-            <div class="flex-fill overflow-auto p-3 bg-light" id="chatHistory">
-                <div class="d-flex justify-content-center align-items-center vh-100" id="suggestedPrompts">
-                    <div class="row">
-                        <div class="col text-center">
-                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt1">Explain legal concept</button>
-                        </div>
-                        <div class="col text-center">
-                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt2">Review Document</button>
-                        </div>
-                        <div class="col text-center">
-                            <button type="button" class="btn btn-primary btn-lg w-100 h-100 p-3" id="prompt3">Find Case Law</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <footer class="bg-secondary p-3">
-              <form id="chatForm" class="d-flex">
-                <label for="fileInput" class="btn btn-light">
-                  📎
-                </label>
-                <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf" onchange="uploadFile()">
-  
-                <input name="prompt" type="text" id="chatInput" class="form-control me-2" placeholder="Type your message here..." autocomplete="off" value="">
-                <button type="submit" class="btn btn-primary">Send</button>
-              </form>
-            </footer>
-          </main>
-      <!-- <div class="prompt-box">
-        <label>
-          <input name="prompt" placeholder="Enter instructions here" type="text"
-            value="">
+<!-- Bottom input bar -->
+  <form id="chatForm">
+    <div class="fixed-bottom px-3 py-3" style="background-color: #f2f2f2;">
+      <div class="input-group rounded" style="background-color: white;">
+        <label for="fileInput" class="btn btn-light">
+          📎
         </label>
-        <button type="submit">Go</button>
-      </div> -->
-    <!-- <p class="output">(Results will appear here)</p> -->
-  </main>
-  <script type="module" src="/main.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@12.0.6/dist/markdown-it.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-  <script>
-    (function(apiKey){
-        (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
-        v=['initialize','identify','updateOptions','pageLoad','track'];for(w=0,x=v.length;w<x;++w)(function(m){
-            o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
-            y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
-            z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
-    })('1ecd6906-2e67-4214-485c-176a4edaea45');
-    pendo.initialize({
-    visitor: {
-            id: "FAKEVISITORID",
-            firstName: "FAKENAME",
-            lastName: "FAKELASTNAME",
-        },
-        account: {
-            id: "FAKEACCOUNTID",
-        }
-    });
+        <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf" onchange="uploadFile()">
+        <input name="prompt" id="chatInput" type="text" class="form-control border-0" placeholder="" style="background-color: white;" autocomplete="off" value="">
+        <div class="input-group-append">
+          <button class="btn btn-light rounded-0" type="submit" style="background-color: #3498db;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi-send" viewBox="0 0 16 16">
+              <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124L5.468 10.69 1.122 8.663a.75.75 0 0 1 .033-1.388L15.854.146zm-4.511 9.327L6.517 8.152 2.462 6.561l7.607-4.78-1.024 6.556z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+<!-- Bottom input bar -->
 
-    function uploadFile() {
+<!-- Left vertical toolbar -->
+  <div class="vertical-toolbar">
+    <ul class="nav flex-column" style="margin-top: 60px;">
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M3.1 2.5A4.995 4.995 0 0 0 1 8c0 1.369.631 2.595 1.615 3.51.96.906 2.092 1.413 3.385 1.51A4.4 4.4 0 0 1 9.52 14.5a.5.5 0 0 0 .5-.5v-4h1a.5.5 0 0 0 0-1h-.985l.415-.939A2.5 2.5 0 0 0 11 8c0-.897-.596-1.693-1.381-2.224-.806-.558-1.86-.936-3.107-1.1a4.5 4.5 0 1 0-5.69 6.98 8.5 8.5 0 0 0-2.172-9.83 4.995 4.995 0 0 0 2.1-5.5z"/>
+          </svg>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-list" viewBox="0 0 16 16">
+            <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+            <path d="M5 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 5 8zm0-2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 5 5.5zm0 5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 5 10.5zm-1 2h10a.5.5 0 0 1 0 1H4a.5.5 0 0 1 0-1z"/>
+          </svg>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16">
+            <path d="M.54 3.87L.5 4.04l1.008.171 1.008-.171 1.063.02a11.954 11.954 0 0 0 .97.26l.281.414 1.914 1.893a.896.896 0 0 1 .01.134L7.12 10h-.578a.86.86 0 0 1-.81-.58l-.9a.86.86 0 0 1 .52-.84A11.954 11.954 0 0 0 6.824 8h3.932a.58.58 0 0 1 .577.495l.9 1.123A.877.877 0 0 1 12.92 10H12.38l-2.88-2.87a1 1 0 0 1 .134-.01l.602-.26.51-1.047a.896.896 0 0 1-.134-.01l-.952-.26Z"/>
+          </svg>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-mic" viewBox="0 0 16 16">
+            <path d="M3.5 6.5A4.5 4.5 0 0 1 8 1a4.5 4.5 0 0 1 4.5 4.5v.384c0 .54.414.994.929 1.024l3.071.1A.5.5 0 0 1 15.998 13H10.608l-1.154.174a.501.501 0 0 1-.593-.12c-.43.291-.928.375-1.437.115L3.003 11h3.5V6.5z"/>
+            <path d="M10 9.5A1.5 1.5 0 0 1 8.5 8h-.678l-.619 1.958a.5.5 0 0 1-.858.476l-.565-.868a4 4 0 0 1 1.571-4.575.456.456 0 0 1 .657.048L7.131 6a4.001 4.001 0 0 1 2.43.915l.565.868a.513.513 0 0 1-.809.601L8 9.5h2z"/>
+            <path d="M11.5 6.5a1.5 1.5 0 0 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+          </svg>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark" viewBox="0 0 16 16">
+            <path d="M14 4H4v10h10V4z"/>
+            <path d="M16 12.5h-9a.5.5 0 0 1 0-1h9a.5.5 0 0 1 0 1z"/>
+            <path d="M13 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+          </svg>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fonts" viewBox="0 0 16 16">
+            <path d="M12.258 3h.792l.35.166.359-.166H14a.777.777 0 0 1 .082.027l.243.126.149.074.147-.074.243-.126A.78.78 0 0 1 15 2.5v.988c0 .426-.118.816-.336 1.16c-.218.345-.508.622-.876.829l-.042.02a.877.877 0 0 0-.482.828c-.176.157-.384.273-.613.338l-.052.012a.872.872"/>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  </div>
+ <!-- Left vertical toolbar  -->
+
+<script type="module" src="/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@12.0.6/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+<script>
+  function uploadFile() {
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0]; // Get the selected file
 
@@ -106,7 +224,8 @@
       // New user chat of the file
       const chatHistory = document.getElementById('chatHistory');
       const newUserChat = document.createElement('div'); // Create a new <div> element
-      newUserChat.className = "d-fle align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+      newUserChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+      newUserChat.style = "padding-left: 400px; padding-right: 300px;"
       newUserChat.innerHTML =`<div class="pe-2">
                                   <div class="card d-inline-block p-2 px-3 m-1"></div>
                               </div>`;
@@ -133,7 +252,7 @@
         cardElement.textContent = 'File upload failed.';
       });
     }
-  </script>
+ </script>
 </body>
 
 </html>

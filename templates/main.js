@@ -1,6 +1,6 @@
 import { streamGemini } from './gemini-api.js';
 
-let form = document.querySelector('form');
+let form = document.getElementById('chatForm');
 let promptInput = document.querySelector('input[name="prompt"]');
 // let output = document.querySelector('.output');
 let output = document.getElementById('chatHistory');
@@ -14,9 +14,16 @@ form.onsubmit = async (ev) => {
         chatButtons.remove();
     }
 
+    const welcomeSign = document.getElementById('welcomeSign');
+
+    if (welcomeSign) {
+        welcomeSign.remove();
+    }
+
     // USER CHAT
     const newUserChat = document.createElement('div'); // Create a new <div> element
-    newUserChat.className = "d-fle align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+    newUserChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+    newUserChat.style = "padding-left: 400px; padding-right: 300px;"
     newUserChat.innerHTML =`<div class="pe-2">
                                 <div class="card d-inline-block p-2 px-3 m-1"></div>
                             </div>`;
@@ -30,7 +37,8 @@ form.onsubmit = async (ev) => {
 
     // NEW BOT CHAT
     const newBotChat = document.createElement('div'); // Create a new <div> element
-    newBotChat.className = "d-fle align-items-baseline mb-4"; // Add a class
+    newBotChat.className = "d-flex align-items-baseline mb-4"; // Add a class
+    newBotChat.style = "padding-left: 300px; padding-right: 400px;"
     newBotChat.innerHTML =`<div class="pe-2">
                                 <div class="card d-inline-block p-2 px-3 m-1"></div>
                             </div>`;
@@ -77,6 +85,7 @@ form.onsubmit = async (ev) => {
 
     const feedbackButtons = document.createElement('div'); // Create a new <div> element
     feedbackButtons.className = "d-flex justify-content-left mt-1";
+    feedbackButtons.style = "padding-left: 300px; padding-right: 400px;"
     feedbackButtons.innerHTML = `<button type="button" class="btn btn-outline-primary btn-sm mx-1" id="goodButton">Good response</button>
                                 <button type="button" class="btn btn-outline-danger btn-sm mx-1" id="badButton">Bad response</button>`
     chatHistory.appendChild(feedbackButtons);
@@ -93,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listeners to the buttons
     prompt1Button.addEventListener('click', () => {
-      promptInput.value = 'Can you explain the basic elements of [legal concept]?';
+      promptInput.value = 'List important legal concepts and explain the basic elements of the one that I choose';
     });
     
     prompt2Button.addEventListener('click', () => {
