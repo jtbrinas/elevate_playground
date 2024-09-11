@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listeners to the buttons
     prompt1Button.addEventListener('click', () => {
-      promptInput.value = 'List important legal concepts and explain the basic elements of the one that I choose';
+      promptInput.value = 'Explain the basic elements of [legal concept]';
     });
     
     prompt2Button.addEventListener('click', () => {
