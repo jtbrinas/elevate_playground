@@ -41,6 +41,36 @@ from langchain.tools.retriever import create_retriever_tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
+from pinecone import Pinecone, ServerlessSpec
+
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
+pc = Pinecone(api_key=pinecone_api_key)
+
+import time
+
+index_name = "langchain-test"  # change if desired
+
+existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
+
+if index_name not in existing_indexes:
+    pc.create_index(
+        name=index_name,
+        dimension=768,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+    while not pc.describe_index(index_name).status["ready"]:
+        time.sleep(1)
+
+index = pc.Index(index_name)
+
+from langchain_pinecone import PineconeVectorStore
+
+
+
+vectorstore = PineconeVectorStore(index=index, embedding=GoogleGenerativeAIEmbeddings(model="models/embedding-001"))
+
 
 
 # {session_id : {"configurable": {"thread_id" : thread_id}}}
@@ -84,18 +114,19 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # docs = loader.load()
 # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 # splits = text_splitter.split_documents(docs)
-# vectorstore = Chroma.from_documents(documents=splits, embedding=GoogleGenerativeAIEmbeddings(model="models/embedding-001"))
+# uuids = [str(uuid.uuid4()) for _ in range(len(splits))]
+# vectorstore.add_documents(documents=splits, ids=uuids)
 # Initialize the vector store at the start of the app
 
-vectorstore_path = 'vectorstore/'
-if not os.path.exists(vectorstore_path):
-    os.makedirs(vectorstore_path)
+# vectorstore_path = 'vectorstore/'
+# if not os.path.exists(vectorstore_path):
+#     os.makedirs(vectorstore_path)
 
-# Initialize an empty vector store
-vectorstore = Chroma(
-    persist_directory=vectorstore_path, 
-    embedding_function=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-)
+# # Initialize an empty vector store
+# vectorstore = Chroma(
+#     persist_directory=vectorstore_path, 
+#     embedding_function=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+# )
 # vectorstore.add_documents(splits)
 
 memory = MemorySaver()
@@ -280,9 +311,10 @@ def upload_file():
         docs = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(docs)
+        uuids = [str(uuid.uuid4()) for _ in range(len(splits))]
 
         # Add new documents to the existing vector store
-        vectorstore.add_documents(splits)
+        vectorstore.add_documents(documents=splits, ids=uuids)
 
         # Create retriever and tool after updating the vector store
         retriever = vectorstore.as_retriever()
