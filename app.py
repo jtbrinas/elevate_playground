@@ -1,171 +1,65 @@
-# The json module is used to work with JSON data.
-# The os module is used to interact with the operating system.
-
 import json
 import os
-
-# Flask: Creates the Flask web application.
-# jsonify: Converts data to JSON format for responses.
-# request: Accesses incoming request data.
-# send_file: Sends files to the client.
-# send_from_directory: Sends files from a specified directory.
-
+from typing import Annotated, Literal
+from typing_extensions import TypedDict
+import time
+import asyncio
 from flask import Flask, jsonify, request, send_file, send_from_directory, session
 import uuid
-
-# HumanMessage from langchain_core.messages: Represents a message from a human user.
-# ChatGoogleGenerativeAI from langchain_google_genai: Provides a chat interface for Google's generative AI.
-
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-
-# Load the API key hidden in .env
 from dotenv import load_dotenv
-load_dotenv()
-
-from langchain_core.chat_history import (
-    BaseChatMessageHistory,
-    InMemoryChatMessageHistory,
-)
-from langchain_core.runnables.history import RunnableWithMessageHistory
-
-from langchain_community.document_loaders import PyPDFLoader
-
-from langchain_chroma import Chroma
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
-
+from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.tools.retriever import create_retriever_tool
-
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import create_react_agent
-
-from pinecone import Pinecone, ServerlessSpec
-
-pinecone_api_key = os.environ.get("PINECONE_API_KEY")
-
-pc = Pinecone(api_key=pinecone_api_key)
-
-import time
-
-index_name = "langchain-test"  # change if desired
-
-existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
-
-if index_name not in existing_indexes:
-    pc.create_index(
-        name=index_name,
-        dimension=768,
-        metric="cosine",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-    )
-    while not pc.describe_index(index_name).status["ready"]:
-        time.sleep(1)
-
-index = pc.Index(index_name)
-
 from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone, ServerlessSpec
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent, ToolNode
+from langgraph.graph.message import add_messages
+from langgraph.graph import END, START, StateGraph
 
 
-
-vectorstore = PineconeVectorStore(index=index, embedding=GoogleGenerativeAIEmbeddings(model="models/embedding-001"))
-
-
-
-# {session_id : {"configurable": {"thread_id" : thread_id}}}
-store = {}
-
-def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = InMemoryChatMessageHistory()
+# Used to get configs from the store dictionary. Configs are used to maintain separate chat histories.
+def get_session_history(session_id: str):
     return store[session_id]
 
 
-from typing import Annotated
-from typing_extensions import TypedDict
-from langgraph.graph.message import add_messages
+# Passes the original user input to the state graph
+async def gemini_call(inputs, config):
+    async for event in runnable.astream_events({"messages": inputs}, config, version="v1"):
+        kind = event["event"]
+        if kind == "on_chat_model_stream":
+            content = event["data"]["chunk"].content
+            if content:
+                # Empty content in the context of OpenAI or Anthropic usually means
+                # that the model is asking for a tool to be invoked.
+                # So we only print non-empty content
+                # print(event, end="|")
+                yield event["data"]["chunk"]
+        elif kind == "on_tool_start":
+            print("--")
+            print(
+                f"Starting tool: {event['name']} with inputs: {event['data'].get('input')}"
+            )
+        elif kind == "on_tool_end":
+            print(f"Done tool: {event['name']}")
+            print(f"Tool output was: {event['data'].get('output')}")
+            print("--")
+
 
 # Add messages essentially does this with more
 # robust handling
 # def add_messages(left: list, right: list):
 #     return left + right
-
-
 class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
-
-# Initialize Gemini model
-model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-
-# Creates a Flask web application named app.
-app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY')
-
-# Set up upload folder for documents
-app.config['UPLOAD_FOLDER'] = 'uploads/'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# TEST: load demo PDF, split the text, embed, and store
-# file_path = "uploads/nike.pdf"
-# loader = PyPDFLoader(file_path)
-# docs = loader.load()
-# text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-# splits = text_splitter.split_documents(docs)
-# uuids = [str(uuid.uuid4()) for _ in range(len(splits))]
-# vectorstore.add_documents(documents=splits, ids=uuids)
-# Initialize the vector store at the start of the app
-
-# vectorstore_path = 'vectorstore/'
-# if not os.path.exists(vectorstore_path):
-#     os.makedirs(vectorstore_path)
-
-# # Initialize an empty vector store
-# vectorstore = Chroma(
-#     persist_directory=vectorstore_path, 
-#     embedding_function=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-# )
-# vectorstore.add_documents(splits)
-
-memory = MemorySaver()
-retriever = vectorstore.as_retriever()
-
-# Create tool
-tool = create_retriever_tool(
-    retriever,
-    "retriever",
-    "contains uploaded documents",
-)
-tools = [tool]
-
-system_prompt = (
-    "Your name is Peter Shmeater. You are sarcastic in all your responses."
-)
-
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ]
-)
-
-from langgraph.prebuilt import ToolNode
-
-tool_node = ToolNode(tools)
-
-model = model.bind_tools(tools)
-
-agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
-
-from typing import Literal
-
-from langchain_core.runnables import RunnableConfig
-
-from langgraph.graph import END, START, StateGraph
-
-# Define the function that determines whether to continue or not
+# Define the function that determines whether to continue or not in the graph
 def should_continue(state: State) -> Literal["__end__", "tools"]:
     messages = state["messages"]
     last_message = messages[-1]
@@ -185,6 +79,70 @@ async def call_model(state: State, config: RunnableConfig):
     response = await model.ainvoke(messages, config)
     # We return a list, because this will get added to the existing list
     return {"messages": response}
+
+
+# Load API keys from .env
+load_dotenv()
+
+# Initialize dictionary of configs. Configs hold the thread_ids.
+store = {} # {session_id : {"configurable": {"thread_id" : thread_id}}}
+
+# Create system prompt (Not implemented yet)
+system_prompt = (
+    "Placeholder"
+)
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system_prompt),
+        ("human", "{input}"),
+    ]
+)
+
+# Initialize pinecone vector store and create retriever
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+pc = Pinecone(api_key=pinecone_api_key)
+index_name = "langchain-test"  # change if desired
+existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
+if index_name not in existing_indexes:
+    pc.create_index(
+        name=index_name,
+        dimension=768,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+    while not pc.describe_index(index_name).status["ready"]:
+        time.sleep(1)
+index = pc.Index(index_name)
+embedding = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+vectorstore = PineconeVectorStore(index=index, embedding=embedding)
+memory = MemorySaver()
+retriever = vectorstore.as_retriever()
+
+# Create tool from retriever
+tool = create_retriever_tool(
+    retriever,
+    "retriever",
+    "contains uploaded documents",
+)
+tools = [tool]
+
+# Make ToolNode using list tools
+tool_node = ToolNode(tools)
+
+# Initialize Gemini model
+model = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+
+# Create Flask app
+app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+
+# Set up upload folder for documents
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Bind tools to model and create react agent
+model = model.bind_tools(tools)
+agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
 
 # Define a new graph
 workflow = StateGraph(State)
@@ -213,29 +171,6 @@ workflow.add_edge("tools", "agent")
 # meaning you can use it as you would any other runnable
 runnable = workflow.compile(checkpointer=memory)
 
-from langchain_core.messages import HumanMessage
-
-async def gemini_call(inputs, config):
-    async for event in runnable.astream_events({"messages": inputs}, config, version="v1"):
-        kind = event["event"]
-        if kind == "on_chat_model_stream":
-            content = event["data"]["chunk"].content
-            if content:
-                # Empty content in the context of OpenAI or Anthropic usually means
-                # that the model is asking for a tool to be invoked.
-                # So we only print non-empty content
-                # print(event, end="|")
-                yield event["data"]["chunk"]
-        elif kind == "on_tool_start":
-            print("--")
-            print(
-                f"Starting tool: {event['name']} with inputs: {event['data'].get('input')}"
-            )
-        elif kind == "on_tool_end":
-            print(f"Done tool: {event['name']}")
-            print(f"Tool output was: {event['data'].get('output')}")
-            print("--")
-
 
 # Defines a route for the home page (/) that sends the index.html file from the web directory.
 @app.route('/')
@@ -246,6 +181,7 @@ def home():
 
     user_id = session['user_id']
     store[user_id] = {'configurable': {'thread_id': user_id}}
+    print(session['user_id'])
     return send_file('templates/index.html')
 
 
@@ -282,10 +218,6 @@ def generate_api():
                         yield 'data: %s\n\n' % json.dumps({"text": chunk.content})
                     except StopAsyncIteration:
                         break
-            # def stream():
-            #     for chunk in response:
-            #         yield 'data: %s\n\n' % json.dumps({ "text": chunk.content })
-
             return stream(), {'Content-Type': 'text/event-stream'}
 
         except Exception as e:
@@ -294,7 +226,7 @@ def generate_api():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    global tools, agent_executor, model, vectorstore
+    global tools, agent_executor, model, vectorstore, embedding
 
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -307,6 +239,8 @@ def upload_file():
     file.save(f'uploads/{file.filename}')
     file_path = f'uploads/{file.filename}'
     try:
+        # vectorstore = PineconeVectorStore(index=index, embedding=embedding)
+
         loader = PyPDFLoader(file_path)
         docs = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -316,18 +250,18 @@ def upload_file():
         # Add new documents to the existing vector store
         vectorstore.add_documents(documents=splits, ids=uuids)
 
-        # Create retriever and tool after updating the vector store
-        retriever = vectorstore.as_retriever()
-        tool = create_retriever_tool(
-            retriever,
-            "retriever",
-            "retrieve outside information needed to respond",
-        )
-        tools = [tool]
+        # # Create retriever and tool after updating the vector store
+        # retriever = vectorstore.as_retriever()
+        # tool = create_retriever_tool(
+        #     retriever,
+        #     "retriever",
+        #     "retrieve outside information needed to respond",
+        # )
+        # tools = [tool]
 
         # Rebind tools to the model and recreate agent_executor
-        model = model.bind_tools(tools)
-        agent_executor = create_react_agent(model, tools, checkpointer=memory)
+        # model = model.bind_tools(tools)
+        # agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
         print("UPLOADED")
 
@@ -346,6 +280,5 @@ def serve_static(path):
 
 
 # If the script is run directly, it starts the Flask app in debug mode.
-import asyncio
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
