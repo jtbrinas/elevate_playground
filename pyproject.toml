@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "elevate_playground"
+version = "0.1.0"
+description = ""
+authors = ["Jeremy Brinas <brinasj@uci.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+typing-extensions = "^4.12.2"
+asyncio = "^3.4.3"
+uuid = "^1.30"
+python-dotenv = "^1.0.1"
+langchain-core = "^0.3.0"
+langchain-google-genai = "^2.0.0"
+langchain-community = "^0.3.0"
+langchain-text-splitters = "^0.3.0"
+langchain = "^0.3.0"
+langchain-pinecone = "^0.2.0"
+pinecone = "^5.1.0"
+langgraph = "^0.2.21"
+flask = "^3.0.3"
+pypdf = "^4.3.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

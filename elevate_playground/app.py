@@ -88,9 +88,7 @@ load_dotenv()
 store = {} # {session_id : {"configurable": {"thread_id" : thread_id}}}
 
 # Create system prompt (Not implemented yet)
-system_prompt = (
-    "Placeholder"
-)
+system_prompt = "Respond only in Italian"
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
@@ -142,7 +140,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Bind tools to model and create react agent
 model = model.bind_tools(tools)
-agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
+agent_executor = create_react_agent(model, tools=tools, checkpointer=memory, state_modifier=system_prompt)
 
 # Define a new graph
 workflow = StateGraph(State)
