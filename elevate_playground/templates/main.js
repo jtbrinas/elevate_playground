@@ -9,31 +9,50 @@ const chatHistory = document.getElementById('chatHistory');
 
 form.onsubmit = async (ev) => {
     const chatButtons = document.getElementById('suggestedPrompts');
-
     if (chatButtons) {
         chatButtons.remove();
     }
 
     const welcomeSign = document.getElementById('welcomeSign');
-
     if (welcomeSign) {
         welcomeSign.remove();
     }
 
-    // USER CHAT
-    const newUserChat = document.createElement('div'); // Create a new <div> element
-    newUserChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
-    newUserChat.style = "padding-left: 400px; padding-right: 300px;"
-    newUserChat.innerHTML =`<div class="pe-2">
-                                <div class="card d-inline-block p-2 px-3 m-1"></div>
-                            </div>`;
+    const fileName = document.getElementById('fileName');
+    const fileIcon = document.getElementById('fileIcon');
+    if (fileName.textContent != '' && fileName.textContent != 'File upload failed.') {
+        fileName.className = 'd-none bg-white';
+        fileIcon.className = 'd-none bg-white';
+        let file_name = fileName.textContent;
+        fileName.textContent = '';
 
-    const cardElement = newUserChat.querySelector('.card'); // Target the element with class 'card'
-    cardElement.textContent = promptInput.value; // Replace the text
+        // New user chat of the file
+        const newFileChat = document.createElement('div'); // Create a new <div> element
+        newFileChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+        newFileChat.style = "padding-left: 400px; padding-right: 300px;"
+        newFileChat.innerHTML =`<div class="pe-2">
+                                    <div class="card d-inline-block p-2 px-3 m-1"></div>
+                                </div>`;
+        const cardElement = newFileChat.querySelector('.card'); // Target the element with class 'card'
+        cardElement.textContent = '📁' + file_name; // Replace the text
+        chatHistory.appendChild(newFileChat);
+    }
 
-    // document.body.appendChild(newUserChat);
-    chatHistory.appendChild(newUserChat);
+    if (promptInput.value.trim() != "") {
+        // USER CHAT
+        const newUserChat = document.createElement('div'); // Create a new <div> element
+        newUserChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
+        newUserChat.style = "padding-left: 400px; padding-right: 300px;"
+        newUserChat.innerHTML =`<div class="pe-2">
+                                    <div class="card d-inline-block p-2 px-3 m-1"></div>
+                                </div>`;
 
+        const cardElement = newUserChat.querySelector('.card'); // Target the element with class 'card'
+        cardElement.textContent = promptInput.value; // Replace the text
+
+        // document.body.appendChild(newUserChat);
+        chatHistory.appendChild(newUserChat);
+    }
 
     // NEW BOT CHAT
     const newBotChat = document.createElement('div'); // Create a new <div> element
@@ -96,6 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const prompt1Button = document.getElementById('prompt1');
     const prompt2Button = document.getElementById('prompt2');
     const prompt3Button = document.getElementById('prompt3');
+
+    const submitButton = document.getElementById('submitButton');
     
     // Get reference to the prompt input box
     const promptInput = document.querySelector('input[name="prompt"]');
@@ -103,15 +124,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners to the buttons
     prompt1Button.addEventListener('click', () => {
       promptInput.value = 'Explain the basic elements of [legal concept]';
+      submitButton.disabled = false;
     });
     
     prompt2Button.addEventListener('click', () => {
       promptInput.value = 'Can you review this [type of document] and identify any potential issues?';
+      submitButton.disabled = false;
     });
     
     prompt3Button.addEventListener('click', () => {
       promptInput.value = 'Can you find relevant case law on [topic] in [jurisdiction]?';
+      submitButton.disabled = false;
     });
+});
 
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chatInput');
+    const fileName = document.getElementById('fileName');
+    const submitButton = document.getElementById('submitButton');
+
+    function updateButtonState() {
+        const isTextInputEmpty = chatInput.value.trim() === '';
+        const isDivEmpty = fileName.textContent.trim() === '';
+        submitButton.disabled = isTextInputEmpty && isDivEmpty;
+    }
+
+    chatInput.addEventListener('input', updateButtonState);
+
+    const observer = new MutationObserver(updateButtonState);
+    observer.observe(fileName, { childList: true, subtree: true });
 });
 

@@ -75,7 +75,11 @@
   <nav class="navbar navbar-light bg-white px-3" style="border-bottom: 1px solid #e6e6e6;">
     <span class="navbar-brand" style="font-size: 20px;">
       <span style="height: 24px; width: 24px; background-color: #20c0aa; border-radius: 50%; display: inline-block;"></span>
-      <span style="color: #20c0aa; font-weight: 600; margin-left: 8px;">elevate</span>
+      <!-- <span style="color: #20c0aa; font-weight: 600; margin-left: 8px;">elevate</span> -->
+      <a href=".">
+        <img src="images/elevate_logo.png" alt="Elevate" style="height: 48px;">
+      </a>
+
     </span>
     <form class="form-inline my-2 my-lg-0">
       <div class="input-group rounded" style="background-color: white;">
@@ -105,14 +109,10 @@
   </nav>
 
 <!-- Main chatbox -->
-  <div id="chatHistory" class="container-fluid" style="padding-left: 60px; padding-bottom: 100px;"> 
+  <div id="chatHistory" class="container-fluid" style="padding-left: 60px; padding-bottom: 100px;">
     <div class="row" style="margin-top: 24px;" id="welcomeSign">
-      <div class="col-12" style="text-align: center;">
-        <span style="height: 36px; width: 36px; background-color: #20c0aa; border-radius: 50%; display: inline-block; position: relative; margin-bottom: 16px;">
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-        </span>
+      <div class="col-12 d-inline-block" style="text-align: center;">
+        <img src="images/elevate_ai_logo.png" alt="Elevate AI" style="height: 110px; width: 110px">
         <h3 style="font-weight: 600;">Hi! I'm your <span style="color: #20c0aa;">Legal Advisor</span>.</h3>
         <h3 style="font-weight: 600;">How can I help you today?</h3>
         <p style="color: #818a91; font-size: 14px; margin-top: 12px;">Ask for information on deal points, matters, clients, and people in your firm.</p>
@@ -131,19 +131,17 @@
         </span></button>
       </div>
     </div>
-    <!-- <div class="row" style="margin-top: 32px;" id="suggestedPrompts">
-      <div class="col-12 btn-group-vertical"> 
-        <button type="button" id="prompt1" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Explain Legal Concept</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
-        <button type="button" id="prompt2" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Review Document</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
-        <button type="button" id="prompt3" class="btn btn-light btn-block rounded" style="background-color: #3498db; color: white; font-weight: 500;"><span style="margin-right: 8px;">Find Case Law</span><span style="color: #b0c4de;">+</span> <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="#b0c4de" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg></button>
-      </div>
-    </div> -->
   </div>
 <!-- Main chatbox -->
 
 <!-- Bottom input bar -->
   <form id="chatForm">
     <div class="fixed-bottom px-3 py-3" style="background-color: #f2f2f2;">
+      <div id="fileDisplay"class="d-flex">
+        <div id="fileIcon" class="d-none bg-white">📁 </div>
+        <div id="fileName" class="d-none bg-white"></div>
+      </div>
+
       <div class="input-group rounded" style="background-color: white;">
         <label for="fileInput" class="btn btn-light">
           📎
@@ -151,7 +149,7 @@
         <input type="file" id="fileInput" name="file" style="display: none;" accept=".pdf" onchange="uploadFile()">
         <input name="prompt" id="chatInput" type="text" class="form-control border-0" placeholder="" style="background-color: white;" autocomplete="off" value="">
         <div class="input-group-append">
-          <button class="btn btn-light rounded-0" type="submit" style="background-color: #3498db;">
+          <button id="submitButton" class="btn btn-light rounded-0" type="submit" style="background-color: #3498db;" disabled>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi-send" viewBox="0 0 16 16">
               <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124L5.468 10.69 1.122 8.663a.75.75 0 0 1 .033-1.388L15.854.146zm-4.511 9.327L6.517 8.152 2.462 6.561l7.607-4.78-1.024 6.556z"/>
             </svg>
@@ -222,49 +220,50 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 <script>
   function uploadFile() {
-      const fileInput = document.getElementById('fileInput');
-      const file = fileInput.files[0]; // Get the selected file
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0]; // Get the selected file
+    const submitButton = document.getElementById('submitButton');
 
-      if (!file) {
-        alert('Please select a file to upload.');
-        return;
-      }
-      const chatButtons = document.getElementById('suggestedPrompts');
-
-      if (chatButtons) {
-          chatButtons.remove();
-      }
-      // New user chat of the file
-      const chatHistory = document.getElementById('chatHistory');
-      const newUserChat = document.createElement('div'); // Create a new <div> element
-      newUserChat.className = "d-flex align-items-baseline mb-4 text-end justify-content-end"; // Add a class
-      newUserChat.style = "padding-left: 400px; padding-right: 300px;"
-      newUserChat.innerHTML =`<div class="pe-2">
-                                  <div class="card d-inline-block p-2 px-3 m-1"></div>
-                              </div>`;
-      const cardElement = newUserChat.querySelector('.card'); // Target the element with class 'card'
-      cardElement.textContent = 'Uploading...'; // Replace the text
-      chatHistory.appendChild(newUserChat);
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      fetch('/upload', { // Adjust the URL to your server's upload endpoint
-        method: 'POST',
-        body: formData,
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('File uploaded successfully:', data);
-        // Handle success
-        cardElement.textContent = '📄 ' + file.name; // Replace the text
-      })
-      .catch(error => {
-        console.error('Error uploading file:', error);
-        // Handle error
-        cardElement.textContent = 'File upload failed.';
-      });
+    if (!file) {
+      alert('Please select a file to upload.');
+      return;
     }
+    const chatButtons = document.getElementById('suggestedPrompts');
+
+    if (chatButtons) {
+        chatButtons.remove();
+    }
+    // File display
+    const fileName = document.getElementById('fileName');
+    const fileIcon = document.getElementById('fileIcon');
+    fileName.textContent = "Uploading...";
+    fileName.className = "bg-white";
+    fileIcon.className = "bg-white";
+    submitButton.disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/upload', { // Adjust the URL to your server's upload endpoint
+      method: 'POST',
+      body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('File uploaded successfully:', data);
+      // Handle success
+      // cardElement.textContent = '📄 ' + file.name; // Replace the text
+      fileName.textContent = file.name;
+      submitButton.disabled = false;
+    })
+    .catch(error => {
+      console.error('Error uploading file:', error);
+      // Handle error
+      // cardElement.textContent = 'File upload failed.';
+      fileName.textContent = 'File upload failed.';
+      submitButton.disabled = false;
+    });
+  }
  </script>
 </body>
 
