@@ -108,6 +108,22 @@ form.onsubmit = async (ev) => {
     feedbackButtons.innerHTML = `<button type="button" class="btn btn-outline-primary btn-sm mx-1" id="goodButton">Good response</button>
                                 <button type="button" class="btn btn-outline-danger btn-sm mx-1" id="badButton">Bad response</button>`
     chatHistory.appendChild(feedbackButtons);
+    const goodButton = feedbackButtons.querySelector('#goodButton');
+    const badButton = feedbackButtons.querySelector('#badButton');
+    console.log("HEYYY")
+    goodButton.addEventListener('click', function() {
+        console.log('Good response button clicked');
+        pendo.track('Feedback Clicked', { feedback: 'Good' });
+        goodButton.disabled = true;
+        badButton.disabled = true;
+    });
+    badButton.addEventListener('click', function() {
+        console.log('Bad response button clicked');
+        pendo.track('Feedback Clicked', { feedback: 'Bad' });
+        goodButton.disabled = true;
+        badButton.disabled = true;
+    });
+    console.log("BEYYYYY")
 };
 
 document.addEventListener('DOMContentLoaded', () => {

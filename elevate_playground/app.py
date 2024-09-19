@@ -71,10 +71,11 @@ from typing import Annotated, Literal
 from typing_extensions import TypedDict
 import time
 import asyncio
-from flask import Flask, jsonify, request, send_file, send_from_directory, session
+from flask import Flask, jsonify, request, send_file, send_from_directory, session, render_template
 import uuid
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
@@ -183,13 +184,22 @@ vectorstore = PineconeVectorStore(index=index, embedding=embedding)
 memory = MemorySaver()
 retriever = vectorstore.as_retriever()
 
+# @tool("search")
+# def search_tool(query: str):
+#     """Searches through documents that were uploaded by the user. Search query must be provided
+#     in natural language and be verbose."""
+#     vectorstore = PineconeVectorStore(index=index, embedding=embedding, namespace=session['user_id'])
+#     print(vectorstore.similarity_search(query))
+#     return "\n".join([x.content for x in vectorstore.similarity_search(query)])
+
 # Create tool from retriever
-tool = create_retriever_tool(
+retriever_tool = create_retriever_tool(
     retriever,
     "retriever",
     "contains uploaded documents",
 )
-tools = [tool]
+tools = [retriever_tool]
+# tools = [search_tool]
 
 # Make ToolNode using list tools
 tool_node = ToolNode(tools)
@@ -207,7 +217,16 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Bind tools to model and create react agent
 model = model.bind_tools(tools)
-agent_executor = create_react_agent(model, tools=tools, checkpointer=memory, state_modifier=system_prompt)
+agent_executor = create_react_agent(model, tools=tools, checkpointer=memory) #, state_modifier=system_prompt)
+
+inputs = {
+    "messages": "using the search tool, tell me about nikes international markets in 2023",
+    "intermediate_steps": []
+}
+out = agent_executor.invoke(inputs, config={"configurable": {"thread_id": "abc123"}})
+
+# print(out[-1].message_log[-1].additional_kwargs["tool_calls"][-1])
+
 
 # Define a new graph
 workflow = StateGraph(State)
@@ -247,7 +266,8 @@ def home():
     user_id = session['user_id']
     store[user_id] = {'configurable': {'thread_id': user_id}}
     print(session['user_id'])
-    return send_file('templates/index.html')
+    user = {'id': session['user_id']} 
+    return render_template('index.html', user=user)
 
 
 # Defines a route for the /api/generate endpoint that accepts POST requests.
@@ -347,3 +367,4 @@ def serve_static(path):
 # If the script is run directly, it starts the Flask app in debug mode.
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
+    # print(None)
