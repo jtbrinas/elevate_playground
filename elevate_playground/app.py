@@ -285,7 +285,7 @@ def generate_api():
             # Create the human message with the user input
             human_message = HumanMessage(content=content)
             system = SystemMessage(content=system_prompt)
-            config = store[session['user_id']]
+            config = {"configurable": {"thread_id": session['user_id']}}
             async def async_stream():
                 async for chunk in gemini_call([human_message], config):
                     yield chunk
