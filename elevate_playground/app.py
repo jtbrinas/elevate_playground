@@ -91,11 +91,6 @@ from langgraph.graph.message import add_messages
 from langgraph.graph import END, START, StateGraph
 
 
-# Used to get configs from the store dictionary. Configs are used to maintain separate chat histories.
-def get_session_history(session_id: str):
-    return store[session_id]
-
-
 # Passes the original user input to the state graph
 async def gemini_call(inputs, config):
     async for event in runnable.astream_events({"messages": inputs}, config, version="v1"):
@@ -144,25 +139,31 @@ async def call_model(state: State, config: RunnableConfig):
     messages = state["messages"]
     # Note: Passing the config through explicitly is required for python < 3.11
     # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
+    if (type(messages[0]) is not SystemMessage):
+        messages.insert(0, SystemMessage(content=system_prompt))
+    # Let's now get the last message in the state
+    # This is the one with the tool calls that we want to update
     response = await model.ainvoke(messages, config)
     # We return a list, because this will get added to the existing list
+
     return {"messages": response}
 
 
 # Load API keys from .env
-load_dotenv()
+load_dotenv() # Comment this out on the deployed website
 
-# Initialize dictionary of configs. Configs hold the thread_ids.
-store = {} # {session_id : {"configurable": {"thread_id" : thread_id}}}
+# Create system prompt 
+# system_prompt = "You are a highly knowledgeable legal assistant,\
+#         capable of answering basic legal questions and providing basic legal advice. \
+#         Your goal is to provide accurate and helpful information to users who may have legal concerns. \
+#         Make sure you use a professional tone. You can always give legal advice."
 
-# Create system prompt (Not implemented yet)
-system_prompt = "Respond only in Italian"
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ]
-)
+system_prompt = "You are a virtual legal assistant designed for lawyers to provide basic \
+        legal advice and answer legal questions. Your role also includes assisting lawyers in analyzing \
+        and extracting information from uploaded documents. Always prioritize clarity, accuracy, \
+        and professionalism in your responses. Explain legal concepts in straightforward terms and \
+        provide relevant examples when applicable. If a question goes beyond basic legal advice or \
+        requires specialized expertise, advise the user to consult a qualified legal professional."
 
 # Initialize pinecone vector store and create retriever
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
@@ -196,7 +197,8 @@ retriever = vectorstore.as_retriever()
 retriever_tool = create_retriever_tool(
     retriever,
     "retriever",
-    "contains uploaded documents",
+    "Contains all the documents uploaded by the user. Use when the query seems to require information from \
+        an uploaded document. Take into account the message history.",
 )
 tools = [retriever_tool]
 # tools = [search_tool]
@@ -217,15 +219,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Bind tools to model and create react agent
 model = model.bind_tools(tools)
-agent_executor = create_react_agent(model, tools=tools, checkpointer=memory) #, state_modifier=system_prompt)
-
-inputs = {
-    "messages": "using the search tool, tell me about nikes international markets in 2023",
-    "intermediate_steps": []
-}
-out = agent_executor.invoke(inputs, config={"configurable": {"thread_id": "abc123"}})
-
-# print(out[-1].message_log[-1].additional_kwargs["tool_calls"][-1])
+# agent_executor = create_react_agent(model, tools=tools, state_modifier=system_prompt)
 
 
 # Define a new graph
@@ -255,17 +249,12 @@ workflow.add_edge("tools", "agent")
 # meaning you can use it as you would any other runnable
 runnable = workflow.compile(checkpointer=memory)
 
-
 # Defines a route for the home page (/) that sends the index.html file from the web directory.
 @app.route('/')
 def home():
     if 'user_id' not in session:
         # Generate a unique ID for the user
         session['user_id'] = str(uuid.uuid4())
-
-    user_id = session['user_id']
-    store[user_id] = {'configurable': {'thread_id': user_id}}
-    print(session['user_id'])
     user = {'id': session['user_id']} 
     return render_template('index.html', user=user)
 
@@ -284,8 +273,8 @@ def generate_api():
             content = req_body.get("contents")            
             # Create the human message with the user input
             human_message = HumanMessage(content=content)
-            system = SystemMessage(content=system_prompt)
-            config = {"configurable": {"thread_id": session['user_id']}}
+            user_id = session.get('user_id')
+            config = {"configurable": {"thread_id": user_id}}
             async def async_stream():
                 async for chunk in gemini_call([human_message], config):
                     yield chunk
@@ -311,7 +300,7 @@ def generate_api():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    global tools, agent_executor, model, vectorstore, embedding
+    global vectorstore
 
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -324,8 +313,6 @@ def upload_file():
     file.save(f'uploads/{file.filename}')
     file_path = f'uploads/{file.filename}'
     try:
-        # vectorstore = PineconeVectorStore(index=index, embedding=embedding)
-
         loader = PyPDFLoader(file_path)
         docs = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -335,21 +322,7 @@ def upload_file():
         # Add new documents to the existing vector store
         vectorstore.add_documents(documents=splits, ids=uuids)
 
-        # # Create retriever and tool after updating the vector store
-        # retriever = vectorstore.as_retriever()
-        # tool = create_retriever_tool(
-        #     retriever,
-        #     "retriever",
-        #     "retrieve outside information needed to respond",
-        # )
-        # tools = [tool]
-
-        # Rebind tools to the model and recreate agent_executor
-        # model = model.bind_tools(tools)
-        # agent_executor = create_react_agent(model, tools, checkpointer=memory)
-
         print("UPLOADED")
-
         return jsonify({'message': 'File uploaded and added to vector store successfully'})
     finally:
         # Delete the file after processing it
