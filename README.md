@@ -165,12 +165,22 @@ The size of the project requires at least the $5/month plan.
 3. Seelct "Manual configuration"
 4. Select "Python 3.10"
 5. In the "Consoles" tab, select "Bash"
-6. Create a virtual environment
+6. Create virtual environment
     ```sh
     mkvirtualenv myvirtualenv --python=/usr/bin/python3.10
     ```
-7. Follow the <a href="#installation">installation instructions</a> in the previous section
+7. Clone and enter the repo
+   ```sh
+   git clone https://github.com/jtbrinas/elevate_playground.git
+   cd elevate_playground
+   ```
+8. After opening the desired branch, install dependencies
+    ```sh
+    git checkout [DESIRED BRANCH NAME]
+    pip install -r requirements.txt
+    ```
 9. In the "Web" tab, put /home/[YOUR USER NAME]/elevate_playground as the Source code directory
+10. In the "Web" tab, put /home/[YOUR USER NAME]/.virtualenvs/myvirtualenv as the Virtualenv
 10. Open the WSGI configuration file and paste in:
     ```python
     import os
@@ -184,12 +194,31 @@ The size of the project requires at least the $5/month plan.
         sys.path.append(path)
     from app import app as application
     ```
+11. In the "Files" tab, navigate to /home/[YOUR USER NAME]/elevate_playground
+11. Upload a .env file with the appropriate keys
+    ```sh
+    GOOGLE_API_KEY=[YOUR GEMINI KEY HERE]
+    LANGCHAIN_API_KEY=[YOUR LANGCHAIN KEY HERE]
+    PINECONE_API_KEY=[YOUR PINECONE KEY HERE]
+    FLASK_SECRET_KEY=[YOUR FLASK SECRET KEY HERE]
+    ```
 11. In the "Files" tab, navigate to /home/[YOUR USER NAME]/elevate_playground/elevate_playground/app.py
 12. Find and comment out the following line of code:
     ```python
     load_dotenv()
     ``` 
 13. Return the "Web" tab and select the reload option. The website should now be deployed!
+
+### Connecting to Pendo
+1. Login to [Pendo](https://app.pendo.io/)
+2. Go to the "Home" page and select step 2 "Install Pendo"
+3. Select "I have access to my codebase"
+4. Select "Web" and "Single-page"5
+5. Add/remove visitor-level data and account-level data
+6. Copy the first script into index.html in the head section. Replace the old pendo script
+7. Copy the second script into index.html at the end of the body section. Replace the old pendo script. The user information must be populated here once the user is logged in. I did it by creating a dictionary {"id": [[SOME VALUE HERE]]} and passing it into render_templates in the index route.
+8. Go to step 3 "Tag key areas"
+9. Click "Start tagging". Tag the deployed website URL. Make sure to tag all the key features. main.js automatically sends an event when users click the response buttons. 
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
