@@ -170,21 +170,21 @@ The size of the project requires at least the $5/month plan.
     mkvirtualenv myvirtualenv --python=/usr/bin/python3.10
     ```
 7. Follow the <a href="#installation">installation instructions</a> in the previous section
-9. In the "Web" tab, put /home/jtbrinas/elevate_playground as the Source code directory
+9. In the "Web" tab, put /home/[YOUR USER NAME]/elevate_playground as the Source code directory
 10. Open the WSGI configuration file and paste in:
     ```python
     import os
     from dotenv import load_dotenv
-    project_folder = os.path.expanduser('/home/jtbrinas/elevate_playground/')
+    project_folder = os.path.expanduser('/home/[YOUR USER NAME]/elevate_playground/')
     load_dotenv(os.path.join(project_folder, '.env'))
 
     import sys
-    path = '/home/jtbrinas/elevate_playground/elevate_playground'
+    path = '/home/[YOUR USER NAME]/elevate_playground/elevate_playground'
     if path not in sys.path:
         sys.path.append(path)
     from app import app as application
     ```
-11. In the "Files" tab, navigate to /home/jtbrinas/elevate_playground/elevate_playground/app.py
+11. In the "Files" tab, navigate to /home/[YOUR USER NAME]/elevate_playground/elevate_playground/app.py
 12. Find and comment out the following line of code:
     ```python
     load_dotenv()
