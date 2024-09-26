@@ -178,7 +178,6 @@ The size of the project requires at least the $5/month plan.
     pip install -r requirements.txt
     ```
 9. In the "Web" tab, put /home/[YOUR USER NAME]/elevate_playground as the Source code directory
-10. In the "Web" tab, put /home/[YOUR USER NAME]/.virtualenvs/myvirtualenv as the Virtualenv
 10. Open the WSGI configuration file and paste in:
     ```python
     import os
