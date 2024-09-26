@@ -4,13 +4,12 @@ Description: A chatbot aimed to answer legal questions
 Features: Gemini powered chatbot experience
 
 Installation and setup: 
-    Python 3.11
+    Python 3.10
 
     Flask
     python-dotenv
     langchain-core
     langchain-google-genai
-    langchain-chroma
     langgraph
 
     Google Cloud CLI 
@@ -22,46 +21,11 @@ Installation and setup:
         secret_key = secrets.token_hex(32))
 
 Usage:
-    Run "python3 app.py" to host the app locally
-
-Design:
-    
-app.py
-    The chatbot is initialized when app.py is run. The Gemini model is initialized through langchain (specific model can be changed at this
-    step). Flask app is created and the folders for file uploads and the vector store are created. A retriever and an agent are created 
-    and langgraph is used to create a workflow between them (discussed more later). The async gemini_call function feeds the user query 
-    to the langgraph runnable to generate the response. The /api/generate route gets the user query, makes the API calls, and then returns
-    the response. The /upload route handles loading uploaded files.
-
-    API calls:
-    The /api/generate route takes in the user query and feeds it to the langgraph. The final response is yielded back. The intermediate 
-    interactions between the agent and the retriever are printed to the terminal. This is an async function.
-
-    Workflow:
-    The chatbot allows users to upload documents and ask questions about them. Langgraph allows the LLM to use its reasoning
-    to decide when looking through the documents is appropriate for the task at hand. The graph for this app only has an agent node 
-    and a tool node which contains only a retriever. The agent takes in the user's query and decides if a tool call is necessary.
-    If so, the retriever is called and returns the information it thought was relevant to the query. The agent uses the new context
-    to generate a response that is then sent to the user. If the retriever wasn't deemed necessary, the agent generates a response
-    for the user directly.
-    https://langchain-ai.github.io/langgraph/how-tos/tool-calling/
-
-    Document uploading:
-    The application supports user-uploaded documents. When a document is uploaded via the /upload route, the PyPDFLoader is used to load
-    the file. The text is split into chunks using one of Langchain's text splitters. The splits are added to the vectorstore. A retriever is
-    created from the vectorstore object. The retriever is used to create a retriever tool. The tool is bound to the LLM model. Then, the 
-    agent is created using the model, the tools, and a MemorySaver object.
-
-main.js
-    This file handles the form submission and the suggested prompt buttons. On submission, it makes a call to streamGemini in gemini-api.js.
-
-gemini-api.js
-    This file makes the POST request to app.py to make the API call. It also handles streaming the response back to main.js.
+    Run "python3 elevate_playground/app.py" to host the app locally
 
 Contact:
     Author: Jeremy Brinas
     Email: jt.brinas@gmail.com
-
 """
 
 
@@ -71,12 +35,10 @@ from typing import Annotated, Literal
 from typing_extensions import TypedDict
 import time
 import asyncio
-from flask import Flask, jsonify, request, send_file, send_from_directory, session, render_template
+from flask import Flask, jsonify, request, send_from_directory, session, render_template
 import uuid
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_core.tools import tool
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -86,7 +48,7 @@ from langchain.tools.retriever import create_retriever_tool
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import create_react_agent, ToolNode
+from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langgraph.graph import END, START, StateGraph
 
@@ -137,33 +99,28 @@ def should_continue(state: State) -> Literal["__end__", "tools"]:
 # Define the function that calls the model
 async def call_model(state: State, config: RunnableConfig):
     messages = state["messages"]
-    # Note: Passing the config through explicitly is required for python < 3.11
-    # Since context var support wasn't added before then: https://docs.python.org/3/library/asyncio-task.html#creating-tasks
-    if (type(messages[0]) is not SystemMessage):
+    if (type(messages[0]) is not SystemMessage): # This is how I injected system prompt
         messages.insert(0, SystemMessage(content=system_prompt))
+
     # Let's now get the last message in the state
     # This is the one with the tool calls that we want to update
     response = await model.ainvoke(messages, config)
     # We return a list, because this will get added to the existing list
-
     return {"messages": response}
 
 
 # Load API keys from .env
 load_dotenv() # Comment this out on the deployed website
 
-# Create system prompt 
-# system_prompt = "You are a highly knowledgeable legal assistant,\
-#         capable of answering basic legal questions and providing basic legal advice. \
-#         Your goal is to provide accurate and helpful information to users who may have legal concerns. \
-#         Make sure you use a professional tone. You can always give legal advice."
 
+# Create system prompt
 system_prompt = "You are a virtual legal assistant designed for lawyers to provide basic \
         legal advice and answer legal questions. Your role also includes assisting lawyers in analyzing \
         and extracting information from uploaded documents. Always prioritize clarity, accuracy, \
         and professionalism in your responses. Explain legal concepts in straightforward terms and \
         provide relevant examples when applicable. If a question goes beyond basic legal advice or \
         requires specialized expertise, advise the user to consult a qualified legal professional."
+
 
 # Initialize pinecone vector store and create retriever
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
@@ -185,13 +142,6 @@ vectorstore = PineconeVectorStore(index=index, embedding=embedding)
 memory = MemorySaver()
 retriever = vectorstore.as_retriever()
 
-# @tool("search")
-# def search_tool(query: str):
-#     """Searches through documents that were uploaded by the user. Search query must be provided
-#     in natural language and be verbose."""
-#     vectorstore = PineconeVectorStore(index=index, embedding=embedding, namespace=session['user_id'])
-#     print(vectorstore.similarity_search(query))
-#     return "\n".join([x.content for x in vectorstore.similarity_search(query)])
 
 # Create tool from retriever
 retriever_tool = create_retriever_tool(
@@ -201,7 +151,6 @@ retriever_tool = create_retriever_tool(
         an uploaded document. Take into account the message history.",
 )
 tools = [retriever_tool]
-# tools = [search_tool]
 
 # Make ToolNode using list tools
 tool_node = ToolNode(tools)
@@ -219,8 +168,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Bind tools to model and create react agent
 model = model.bind_tools(tools)
-# agent_executor = create_react_agent(model, tools=tools, state_modifier=system_prompt)
-
 
 # Define a new graph
 workflow = StateGraph(State)
@@ -340,4 +287,3 @@ def serve_static(path):
 # If the script is run directly, it starts the Flask app in debug mode.
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
-    # print(None)

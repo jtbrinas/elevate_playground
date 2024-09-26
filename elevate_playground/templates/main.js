@@ -110,7 +110,6 @@ form.onsubmit = async (ev) => {
     chatHistory.appendChild(feedbackButtons);
     const goodButton = feedbackButtons.querySelector('#goodButton');
     const badButton = feedbackButtons.querySelector('#badButton');
-    console.log("HEYYY")
     goodButton.addEventListener('click', function() {
         console.log('Good response button clicked');
         pendo.track('Feedback Clicked', { feedback: 'Good' });
@@ -123,7 +122,6 @@ form.onsubmit = async (ev) => {
         goodButton.disabled = true;
         badButton.disabled = true;
     });
-    console.log("BEYYYYY")
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -161,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateButtonState() {
         const isTextInputEmpty = chatInput.value.trim() === '';
-        const isDivEmpty = fileName.textContent.trim() === '';
+        const isDivEmpty = fileName.textContent.trim() === '' || fileName.textContent == 'Uploading...';
         submitButton.disabled = isTextInputEmpty && isDivEmpty;
     }
 
