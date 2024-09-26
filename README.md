@@ -213,7 +213,7 @@ The size of the project requires at least the $5/month plan.
 1. Login to [Pendo](https://app.pendo.io/)
 2. Go to the "Home" page and select step 2 "Install Pendo"
 3. Select "I have access to my codebase"
-4. Select "Web" and "Single-page"5
+4. Select "Web" and "Single-page"
 5. Add/remove visitor-level data and account-level data
 6. Copy the first script into index.html in the head section. Replace the old pendo script
 7. Copy the second script into index.html at the end of the body section. Replace the old pendo script. The user information must be populated here once the user is logged in. I did it by creating a dictionary {"id": [[SOME VALUE HERE]]} and passing it into render_templates in the index route.
