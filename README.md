@@ -107,6 +107,7 @@ To host the app locally, follow the steps below.
 ### Prerequisites
 
 1. Install [Poetry](https://python-poetry.org/docs/) to help download dependencies
+2. Alternatively, use the `requirements.txt` for package dependencies
 
 ### Installation
 <a id="installation"></a>
@@ -137,13 +138,10 @@ To host the app locally, follow the steps below.
 4. Enter the cloned repo and install the necessary packages
    ```sh
    cd elevate_playground
-   poetry install
+   pip install -r requirements.txt
    ```
-5. Activate the virtual environment
-   ```sh
-   poetry shell
-   ```
-6. Run app.py to host the app locally
+   
+5. Run app.py to host the app locally
    ```sh
    python elevate_playground/app.py
    ```
@@ -162,7 +160,7 @@ The size of the project requires at least the $5/month plan.
 ### Set up
 1. Login to [Pythonanywhere](https://www.pythonanywhere.com/)
 2. In the "Web" tab, select "Add new web app".
-3. Seelct "Manual configuration"
+3. Select "Manual configuration"
 4. Select "Python 3.10"
 5. In the "Consoles" tab, select "Bash"
 6. Create a virtual environment
@@ -170,16 +168,16 @@ The size of the project requires at least the $5/month plan.
     mkvirtualenv myvirtualenv --python=/usr/bin/python3.10
     ```
 7. Follow the <a href="#installation">installation instructions</a> in the previous section
-9. In the "Web" tab, put /home/jtbrinas/elevate_playground as the Source code directory
+9. In the "Web" tab, put /home/[user_name]/elevate_playground as the Source code directory
 10. Open the WSGI configuration file and paste in:
     ```python
     import os
     from dotenv import load_dotenv
-    project_folder = os.path.expanduser('/home/jtbrinas/elevate_playground/')
+    project_folder = os.path.expanduser('/home/[user_name]/elevate_playground/')
     load_dotenv(os.path.join(project_folder, '.env'))
 
     import sys
-    path = '/home/jtbrinas/elevate_playground/elevate_playground'
+    path = '/home/[user_name]/elevate_playground/elevate_playground'
     if path not in sys.path:
         sys.path.append(path)
     from app import app as application
@@ -188,8 +186,9 @@ The size of the project requires at least the $5/month plan.
 12. Find and comment out the following line of code:
     ```python
     load_dotenv()
-    ``` 
-13. Return the "Web" tab and select the reload option. The website should now be deployed!
+    ```
+13. Return the "Web" tab and put your path of the virtual environment in `Virtualenv`: the virtual environment should be`/home/[user_name]/.virtualenvs/myvirtualenv`
+14. At the "Web" tab, select the reload option. The website should now be deployed!
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -327,6 +326,8 @@ Don't forget to give the project a star! Thanks again!
 ## Contact
 
 Jeremy Brinas - jt.brinas@gmail.com
+
+Eden Huang - eden.huang@elevate.law
 
 Project Link: [https://github.com/jtbrinas/elevate_playground.git](https://github.com/jtbrinas/elevate_playground.git)
 
